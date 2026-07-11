@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>附近午餐推薦</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <section class="controls">
+        <div id="filterPanel" class="filter-panel">
+          <div class="control-group">
+            <p class="control-label">預算</p>
+            <div class="price-filter" role="group" aria-label="價格區間">
+              <button class="price-option active" type="button" data-price-range="all">不限</button>
+              <button class="price-option" type="button" data-price-range="1_100">1-100</button>
+              <button class="price-option" type="button" data-price-range="101_500">101-500</button>
+              <button class="price-option" type="button" data-price-range="501_1000">501-1000</button>
+              <button class="price-option" type="button" data-price-range="1001_2000">1001-2000</button>
+              <button class="price-option" type="button" data-price-range="2000_up">2000以上</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <p class="control-label">想吃什麼</p>
+            <div class="type-filter" role="group" aria-label="午餐類型">
+              <button class="type-option active" type="button" data-food-type="noodles">麵飯小吃</button>
+              <button class="type-option active" type="button" data-food-type="bento">便當餐盒</button>
+              <button class="type-option active" type="button" data-food-type="healthy">健康蔬食</button>
+              <button class="type-option active" type="button" data-food-type="southeast">越南泰味</button>
+              <button class="type-option active" type="button" data-food-type="asian">中日韓食</button>
+              <button class="type-option active" type="button" data-food-type="international">義式異國</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="recommendButton" class="primary-button" type="button">開始找午餐</button>
+          <button id="filterToggleButton" class="filter-toggle-button" type="button" aria-expanded="false" hidden>調整條件</button>
+          <button id="refreshButton" class="refresh-button" type="button" hidden>重新推薦</button>
+        </div>
+        <p id="status" class="status" role="status">選好條件，看看今天吃什麼。</p>
+        <p id="metaStatus" class="meta-status"></p>
+      </section>
+
+      <section id="results" class="results" aria-label="推薦結果"></section>
+    </main>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
