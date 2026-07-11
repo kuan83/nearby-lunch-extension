@@ -1,5 +1,8 @@
 require("dotenv").config();
 
+const fs = require("fs");
+const https = require("https");
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const { config } = require("./src/config");
@@ -11,7 +14,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [/^chrome-extension:\/\//, "http://localhost:3000"],
+    origin: [/^chrome-extension:\/\//],
     methods: ["GET"],
     allowedHeaders: ["Content-Type", "X-Lunch-Client-Id"]
   })
@@ -29,7 +32,7 @@ app.get("/api/lunch", lunchRateLimit, async (req, res) => {
       clientId: req.get("X-Lunch-Client-Id"),
       priceRange: req.query.priceRange,
       foodTypes: req.query.foodTypes,
-      refresh: req.query.refresh === "1"
+      languageCode: req.query.languageCode
     });
 
     res.json(result);
@@ -47,6 +50,29 @@ app.get("/api/lunch", lunchRateLimit, async (req, res) => {
   }
 });
 
-app.listen(config.port, () => {
-  console.log(`Lunch backend listening on http://localhost:${config.port}`);
+const tlsCredentials = loadTlsCredentials();
+
+https.createServer(tlsCredentials, app).listen(config.port, () => {
+  console.log(`Lunch backend listening securely on https://localhost:${config.port}`);
 });
+
+function loadTlsCredentials() {
+  const keyPath = resolveTlsPath(process.env.HTTPS_KEY_PATH, "certs/localhost-key.pem");
+  const certPath = resolveTlsPath(process.env.HTTPS_CERT_PATH, "certs/localhost-cert.pem");
+  const missingPaths = [keyPath, certPath].filter((filePath) => !fs.existsSync(filePath));
+
+  if (missingPaths.length) {
+    throw new Error(
+      `HTTPS certificate files are required. Run the mkcert setup in README.md, then configure HTTPS_KEY_PATH and HTTPS_CERT_PATH. Missing: ${missingPaths.join(", ")}`
+    );
+  }
+
+  return {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+  };
+}
+
+function resolveTlsPath(value, fallback) {
+  return path.resolve(__dirname, value || fallback);
+}

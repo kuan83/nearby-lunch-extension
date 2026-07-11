@@ -1,94 +1,74 @@
-# 附近午餐推薦 Chrome Extension
+# Nearby Lunch Extension (Self-hosted)
 
-Chrome Manifest V3 Side Panel + Node.js Express 後端。前端負責定位、條件選擇、顯示與本地快取；Google Places API key 只放在 `backend/.env`。
+Chrome Manifest V3 Side Panel extension for finding everyday lunch nearby. This release is a self-hosted developer tool: it connects only to a backend running securely on your own computer at `https://localhost:3000`.
 
-## 啟動
+The extension does not include a shared backend or a shared Google Maps Platform key. Each user supplies and manages their own key, billing account, and usage limits.
 
-```powershell
-cd backend
-npm install
-npm start
-```
+## Self-hosted setup
 
-在 `chrome://extensions` 開啟開發人員模式，選擇「載入未封裝項目」，載入 `extension` 資料夾。點工具列 icon 後會在 Chrome Side Panel 開啟，切換頁面或點 Google Maps 不會讓推薦介面消失。
+1. Install a current Node.js LTS release.
+2. Configure a Google Maps Platform project with billing enabled and enable **Places API (New)** only.
+3. Restrict the key to **Places API (New)**. During local development, application restriction can remain unset; use an IP restriction after deploying a backend with a fixed public IP.
+4. Create the backend environment file and add your own key:
 
-## 精準上班族午餐搜尋
+   ```powershell
+   cd backend
+   Copy-Item .env.example .env
+   ```
 
-後端使用 Nearby Search (New)，將一次推薦拆成最多 5 組定向搜尋：麵飯小吃、便當健康、越南東南亞、亞洲料理、義大利異國。
+   Set `GOOGLE_PLACES_API_KEY` in `backend/.env`. Do not place it in `extension/`, commit it, or upload it to the Chrome Web Store.
 
-每組最多取得 20 筆並使用 `DISTANCE` 排序。第一階段搜尋 3 公里；排除不適合店家後不足 20 間，才以 5 公里再搜尋一次。預設全選時每個新地點最多使用 10 次 Google API，當日相同條件之後都走快取。
+5. Install [mkcert](https://github.com/FiloSottile/mkcert), trust its local certificate authority, and create a localhost certificate. On Windows with winget:
 
-```js
-{
-  includedTypes,
-  maxResultCount: 20,
-  rankPreference: "DISTANCE",
-  languageCode: "zh-TW",
-  locationRestriction: { circle: { center, radius } }
-}
-```
+   ```powershell
+   winget install FiloSottile.mkcert
+   cd ..
+   powershell -ExecutionPolicy Bypass -File .\scripts\setup-local-https.ps1
+   ```
 
-系統不使用泛用的 `restaurant`、`cafe`、`bakery` 或 `fast_food_restaurant`。候選回來後會排除牛排、火鍋、燒肉、吃到飽、糕點甜點與炸雞，再依搜尋組輪流取店。
+   If winget is unavailable, download the official pre-built `mkcert.exe` from its GitHub releases, then pass its full path:
 
-Google Places API 沒有提供「廣告／贊助結果」欄位，因此不能保證辨識廣告店家；本版透過距離排序降低熱門度排序的影響。
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\setup-local-https.ps1 -MkcertPath "C:\path\to\mkcert.exe"
+   ```
 
-固定 field mask 包含 `places.id`、名稱、地址、位置、type、評分、價格、營業狀態及 Google Maps URI。不使用 Place Details、Photos、Autocomplete，也不嵌入 Google Map。
+   The generated `backend/certs/` folder is ignored by Git. Never share its private key. The script changes the current user's trusted certificate store and must be run interactively.
 
-## API
+6. Install and start the HTTPS backend:
 
-```text
-GET /api/lunch?lat=24.080&lng=120.542&priceRange=all&foodTypes=noodles,bento,healthy,southeast,asian,international
-```
+   ```powershell
+   npm ci
+   npm start
+   ```
 
-`foodTypes` 可多選：
+   Confirm `https://localhost:3000/health` returns `{ "ok": true }`.
 
-```text
-noodles        麵飯小吃
-bento          便當餐盒
-healthy        健康輕食
-southeast      越南東南亞
-asian          亞洲料理
-international  義大利異國
-```
+7. In Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the `extension/` folder. Click the extension icon to open the Side Panel.
 
-Response 額外包含：`searchRadiusMeters`、`candidateCount`、`googleCallsUsed`、`resultShortfall`。若 5 公里內不足 20 間，回傳實際數量並令 `resultShortfall=true`。
+The Side Panel checks `/health` before asking for location. If the local backend is unavailable, it shows a setup state and sends no Places request.
 
-## 價格區間
+## Languages
 
-```text
-all        不限
-1_100      1-100
-101_500    101-500
-501_1000   501-1000
-1001_2000  1001-2000
-2000_up    2000以上
-```
+The extension follows Chrome's UI language. Traditional Chinese (`zh-TW`) and English are available; unsupported UI languages fall back to English. Nearby Search uses `zh-TW` for Chrome languages beginning with `zh-`, and `en` for all other languages. Google Places may still return store names or addresses in the language available in its source data.
 
-指定價格時，有 Google 價格資料的店依區間篩選；價格未知的日常小店仍保留並標示「價格未知」。
+## Data and cost behavior
 
-## 快取與重新推薦
+- Your browser sends location over HTTPS to your own `localhost` backend, which sends the Nearby Search request to Google Maps Platform using **your** key.
+- The released extension and backend do not persist Google Places content. Results exist only while the current Side Panel remains open. Closing or reloading it clears restaurant data.
+- `chrome.storage.local` only stores a random client identifier used by the local rate limiter; it does not store restaurant results.
+- The backend keeps short-lived failure cooldown, rate-limit, and daily-call counters. It does not keep full Places responses.
+- Default `MAX_DAILY_GOOGLE_CALLS=25` is a local guardrail, not a guarantee of free Google Maps Platform usage. Set Google Cloud Billing budgets and alerts yourself.
 
-```text
-client:{date}:{clientId}:{geoBucket}:{priceRange}:officeLunchV10:{foodTypesKey}
-area:{date}:{geoBucket}:officeLunchV10:{foodTypesKey}
-lunch:v10:{date}:{geoBucket}:{priceRange}:{foodTypesKey}
-lunch:active:v1:{date}
-```
+The UI includes Google Maps attribution, a Google Maps link for each result, and a short ranking explanation. See the [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies) before redistributing modified versions.
 
-- Area cache 保存完整合格候選池。
-- 價格切換、Side Panel 重開與重新推薦不會自動追加 Google 呼叫。
-- 重新推薦先排除已看過的店；候選全部看完才重置循環。
-- 單一搜尋組失敗時保留其他組結果，失敗組在 cooldown 期間不重試。
-- `lunch:active:v1:{date}` 保存當天正在看的結果、順序與條件；關閉再開仍會恢復，隔天自動清除。
-- 切換類型或價格不會立即替換目前結果，只有按「重新推薦」才套用。
-
-## `.env`
+## Environment settings
 
 ```text
 GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
 PORT=3000
+HTTPS_KEY_PATH=certs/localhost-key.pem
+HTTPS_CERT_PATH=certs/localhost-cert.pem
 MAX_DAILY_GOOGLE_CALLS=25
-CACHE_TTL_HOURS=24
 INITIAL_SEARCH_RADIUS_METERS=3000
 EXPANDED_SEARCH_RADIUS_METERS=5000
 RATE_LIMIT_WINDOW_MINUTES=10
@@ -98,10 +78,21 @@ RECOMMENDATION_COUNT=20
 GOOGLE_MAX_RESULT_COUNT=20
 ```
 
-`MAX_DAILY_GOOGLE_CALLS=25` 可支援每天兩個完整的新地點搜尋，並保留 5 次緩衝。請同時在 Google Cloud Billing 設定低額預算警示；預算警示只會通知，不會自動停止計費。
+## Packaging for Chrome Web Store
 
-## 官方參考
+Create an upload zip containing only `extension/`:
 
-- [Nearby Search (New)](https://developers.google.com/maps/documentation/places/web-service/nearby-search)
-- [Place Types (New)](https://developers.google.com/maps/documentation/places/web-service/place-types)
-- [Google Maps Platform pricing](https://developers.google.com/maps/billing-and-pricing/pricing)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package-extension.ps1
+```
+
+The result is `dist/nearby-lunch-extension.zip`. It excludes the backend, `.env`, `node_modules`, logs, Git metadata, and test output.
+
+See [Chrome Web Store release notes](docs/chrome-web-store.md), [Privacy Policy](docs/privacy.md), and [Terms of Use](docs/terms.md). To publish the policy pages, enable GitHub Pages from the `main` branch's `/docs` folder. The expected public URLs are:
+
+- `https://kuan83.github.io/nearby-lunch-extension/privacy.html`
+- `https://kuan83.github.io/nearby-lunch-extension/terms.html`
+
+## License
+
+[MIT](LICENSE)

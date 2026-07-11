@@ -4,7 +4,7 @@ const { canCallGoogle, incrementDailyGoogleCallCount } = require("./quota");
 const { searchNearbyRestaurants } = require("./googlePlaces");
 const { filterOfficeLunchRestaurants } = require("./officeLunch");
 
-async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, errorKeyPrefix, formatRestaurant }) {
+async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, languageCode, errorKeyPrefix, formatRestaurant }) {
   const state = {
     places: [],
     googleCallsUsed: 0,
@@ -17,6 +17,7 @@ async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, errorKeyP
     lng,
     radius: config.initialSearchRadiusMeters,
     searchGroups,
+    languageCode,
     errorKeyPrefix,
     formatRestaurant,
     state
@@ -31,6 +32,7 @@ async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, errorKeyP
       lng,
       radius: config.expandedSearchRadiusMeters,
       searchGroups,
+      languageCode,
       errorKeyPrefix,
       formatRestaurant,
       state
@@ -48,7 +50,7 @@ async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, errorKeyP
   };
 }
 
-async function runStage({ lat, lng, radius, searchGroups, errorKeyPrefix, formatRestaurant, state }) {
+async function runStage({ lat, lng, radius, searchGroups, languageCode, errorKeyPrefix, formatRestaurant, state }) {
   for (const searchGroup of searchGroups) {
     const cooldownKey = `${errorKeyPrefix}:${searchGroup}:${radius}`;
     if (getCache(cooldownKey)) {
@@ -65,7 +67,7 @@ async function runStage({ lat, lng, radius, searchGroups, errorKeyPrefix, format
     state.googleCallsUsed += 1;
 
     try {
-      const places = await searchNearbyRestaurants(lat, lng, searchGroup, radius);
+      const places = await searchNearbyRestaurants(lat, lng, searchGroup, radius, languageCode);
       state.places.push(...places.map((place) => formatRestaurant(place, lat, lng)));
     } catch (error) {
       state.failedGroups.push(searchGroup);

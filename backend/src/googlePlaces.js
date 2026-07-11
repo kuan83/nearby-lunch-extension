@@ -3,7 +3,7 @@ const { SEARCH_GROUPS } = require("./foodTypes");
 
 const GOOGLE_NEARBY_SEARCH_URL = "https://places.googleapis.com/v1/places:searchNearby";
 
-async function searchNearbyRestaurants(lat, lng, searchGroup, radius) {
+async function searchNearbyRestaurants(lat, lng, searchGroup, radius, languageCode) {
   if (!config.placesApiKey) {
     throw createGoogleError("MISSING_GOOGLE_PLACES_API_KEY", "Backend is missing GOOGLE_PLACES_API_KEY.");
   }
@@ -24,7 +24,7 @@ async function searchNearbyRestaurants(lat, lng, searchGroup, radius) {
       includedTypes: group.includedTypes,
       maxResultCount: config.googleMaxResultCount,
       rankPreference: "DISTANCE",
-      languageCode: "zh-TW",
+      languageCode,
       locationRestriction: {
         circle: {
           center: { latitude: lat, longitude: lng },

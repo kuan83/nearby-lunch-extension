@@ -1,8 +1,8 @@
 node_modules/
 .env
+backend/certs/
 .DS_Store
-backend/server.out.log
-backend/server.err.log
+dist/
 .playwright-cli/
 nvm-install.log
 nvm-setup.exe

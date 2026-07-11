@@ -1,50 +1,58 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>附近午餐推薦</title>
+    <title data-i18n="extensionName"></title>
     <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
     <main class="panel">
       <section class="controls">
+        <div id="backendNotice" class="backend-notice" hidden>
+          <span data-i18n="backendOffline"></span>
+          <a href="https://github.com/kuan83/nearby-lunch-extension#self-hosted-setup" target="_blank" rel="noreferrer" data-i18n="setupGuide"></a>
+          <button id="healthRetryButton" type="button" data-i18n="retryCheck"></button>
+        </div>
         <div id="filterPanel" class="filter-panel">
+          <p class="location-disclosure" data-i18n="locationDisclosure"></p>
           <div class="control-group">
-            <p class="control-label">預算</p>
-            <div class="price-filter" role="group" aria-label="價格區間">
-              <button class="price-option active" type="button" data-price-range="all">不限</button>
+            <p class="control-label" data-i18n="budget"></p>
+            <div class="price-filter" role="group" data-i18n-aria-label="ariaBudget">
+              <button class="price-option active" type="button" data-price-range="all" data-i18n="priceAll"></button>
               <button class="price-option" type="button" data-price-range="1_100">1-100</button>
               <button class="price-option" type="button" data-price-range="101_500">101-500</button>
               <button class="price-option" type="button" data-price-range="501_1000">501-1000</button>
               <button class="price-option" type="button" data-price-range="1001_2000">1001-2000</button>
-              <button class="price-option" type="button" data-price-range="2000_up">2000以上</button>
+              <button class="price-option" type="button" data-price-range="2000_up" data-i18n="priceOver2000"></button>
             </div>
           </div>
-
           <div class="control-group">
-            <p class="control-label">想吃什麼</p>
-            <div class="type-filter" role="group" aria-label="午餐類型">
-              <button class="type-option active" type="button" data-food-type="noodles">麵飯小吃</button>
-              <button class="type-option active" type="button" data-food-type="bento">便當餐盒</button>
-              <button class="type-option active" type="button" data-food-type="healthy">健康蔬食</button>
-              <button class="type-option active" type="button" data-food-type="southeast">越南泰味</button>
-              <button class="type-option active" type="button" data-food-type="asian">中日韓食</button>
-              <button class="type-option active" type="button" data-food-type="international">義式異國</button>
+            <p class="control-label" data-i18n="foodType"></p>
+            <div class="type-filter" role="group" data-i18n-aria-label="ariaFoodType">
+              <button class="type-option active" type="button" data-food-type="noodles" data-i18n="foodNoodles"></button>
+              <button class="type-option active" type="button" data-food-type="bento" data-i18n="foodBento"></button>
+              <button class="type-option active" type="button" data-food-type="healthy" data-i18n="foodHealthy"></button>
+              <button class="type-option active" type="button" data-food-type="southeast" data-i18n="foodSoutheast"></button>
+              <button class="type-option active" type="button" data-food-type="asian" data-i18n="foodAsian"></button>
+              <button class="type-option active" type="button" data-food-type="international" data-i18n="foodInternational"></button>
             </div>
           </div>
         </div>
-
         <div class="actions">
-          <button id="recommendButton" class="primary-button" type="button">開始找午餐</button>
-          <button id="filterToggleButton" class="filter-toggle-button" type="button" aria-expanded="false" hidden>調整條件</button>
-          <button id="refreshButton" class="refresh-button" type="button" hidden>重新推薦</button>
+          <button id="recommendButton" class="primary-button" type="button" data-i18n="startLunch"></button>
+          <button id="filterToggleButton" class="filter-toggle-button" type="button" aria-expanded="false" hidden data-i18n="filterConditions"></button>
+          <button id="refreshButton" class="refresh-button" type="button" hidden data-i18n="refresh"></button>
         </div>
-        <p id="status" class="status" role="status">選好條件，看看今天吃什麼。</p>
+        <p id="status" class="status" role="status"></p>
         <p id="metaStatus" class="meta-status"></p>
+        <div id="placesAttribution" class="places-attribution" hidden>
+          <span translate="no">Google Maps</span>
+          <button id="rankingInfoButton" type="button" data-i18n="rankingInfo"></button>
+        </div>
+        <p id="rankingNotice" class="ranking-notice" hidden data-i18n="rankingNotice"></p>
       </section>
-
-      <section id="results" class="results" aria-label="推薦結果"></section>
+      <section id="results" class="results" data-i18n-aria-label="resultsLabel"></section>
     </main>
     <script src="sidepanel.js"></script>
   </body>
