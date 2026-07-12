@@ -4,6 +4,15 @@ Chrome Manifest V3 Side Panel extension for finding everyday lunch nearby. This 
 
 The extension does not include a shared backend or a shared Google Maps Platform key. Each user supplies and manages their own key, billing account, and usage limits.
 
+## Project overview
+
+This repository contains two parts:
+
+- `extension/`: the Manifest V3 Side Panel interface. It asks for location only after the user starts a search and never contains a Google API key.
+- `backend/`: a local HTTPS Node.js service that calls Places API (New) with the user's own key.
+
+The project is published as source code for self-hosting. It is not a hosted lunch-search service and does not provide a shared Google billing account.
+
 ## Self-hosted setup
 
 1. Install a current Node.js LTS release.
@@ -78,7 +87,7 @@ RECOMMENDATION_COUNT=20
 GOOGLE_MAX_RESULT_COUNT=20
 ```
 
-## Packaging for Chrome Web Store
+## Extension package validation
 
 Create an upload zip containing only `extension/`:
 
@@ -86,9 +95,9 @@ Create an upload zip containing only `extension/`:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-extension.ps1
 ```
 
-The result is `dist/nearby-lunch-extension.zip`. It excludes the backend, `.env`, `node_modules`, logs, Git metadata, and test output.
+The result is `dist/nearby-lunch-extension.zip`. It excludes the backend, `.env`, certificates, `node_modules`, logs, Git metadata, and test output. The package is retained for local validation; this project is not currently being submitted to the Chrome Web Store.
 
-See [Chrome Web Store release notes](docs/chrome-web-store.md), [Privacy Policy](docs/privacy.md), and [Terms of Use](docs/terms.md). To publish the policy pages, enable GitHub Pages from the `main` branch's `/docs` folder. The expected public URLs are:
+See the [project site](docs/index.md), [Privacy Policy](docs/privacy.md), [Terms of Use](docs/terms.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md). To publish the policy pages, enable GitHub Pages from the `main` branch's `/docs` folder. The expected public URLs are:
 
 - `https://kuan83.github.io/nearby-lunch-extension/privacy.html`
 - `https://kuan83.github.io/nearby-lunch-extension/terms.html`

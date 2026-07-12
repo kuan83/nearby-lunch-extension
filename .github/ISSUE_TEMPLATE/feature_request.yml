@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a focused improvement for the self-hosted project.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the user need without sharing personal location or API data.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy or cost impact
+      description: Explain any effect on location handling, Google API calls, permissions, or billing.
