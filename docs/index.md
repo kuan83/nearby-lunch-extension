@@ -10,7 +10,13 @@ Nearby Lunch Extension is an open-source, self-hosted Chrome Side Panel project 
 - Limits local Google API use with daily quota, rate-limit, and failure-cooldown safeguards.
 - Supports Traditional Chinese and English UI text.
 
-## Self-hosting
+## Quick setup on Windows
+
+For the normal Windows path, download or clone the repository and double-click `Setup-Nearby-Lunch.cmd`. It installs missing prerequisites through winget, creates the trusted localhost certificate, and asks for the user's own Google Places API key one time. After setup, double-click `Start-Nearby-Lunch.cmd` whenever the extension is needed.
+
+The API key and certificate remain only on the user's computer in ignored files. They are never part of the repository or extension package.
+
+## Manual self-hosting
 
 Follow the [README setup guide](https://github.com/kuan83/nearby-lunch-extension#self-hosted-setup) to create a trusted localhost certificate, configure your own key, and load the extension locally.
 

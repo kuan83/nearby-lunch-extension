@@ -13,7 +13,19 @@ This repository contains two parts:
 
 The project is published as source code for self-hosting. It is not a hosted lunch-search service and does not provide a shared Google billing account.
 
-## Self-hosted setup
+## Quick setup for Windows
+
+The simplest Windows path needs no typed PowerShell commands:
+
+1. Double-click `Setup-Nearby-Lunch.cmd` in the project folder.
+2. The setup window installs missing Node.js LTS and mkcert through Windows Package Manager, then asks once for your Google Places API key.
+3. If it installed Node.js or mkcert, close the window and double-click `Setup-Nearby-Lunch.cmd` once more.
+4. Double-click `Start-Nearby-Lunch.cmd` whenever you want to use the extension. Keep its window open while using Nearby Lunch.
+5. In Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the `extension/` folder.
+
+The first-time setup creates `backend/.env` and `backend/certs/` locally. Both are ignored by Git. Never share either folder or its contents.
+
+## Manual setup
 
 1. Install a current Node.js LTS release.
 2. Configure a Google Maps Platform project with billing enabled and enable **Places API (New)** only.
