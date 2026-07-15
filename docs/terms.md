@@ -2,7 +2,7 @@
 
 Effective date: 2026-07-11
 
-Nearby Lunch Extension is provided as a self-hosted developer tool under the MIT License.
+Nearby Food Extension is provided as a self-hosted developer tool under the MIT License.
 
 ## Self-hosted operation
 

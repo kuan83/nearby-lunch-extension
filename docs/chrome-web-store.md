@@ -4,13 +4,13 @@
 
 **Name:** \u9644\u8fd1\u5348\u9910\u63a8\u85a6\uff08\u81ea\u67b6\u7248\uff09
 
-**Short description:** \u4f7f\u7528\u81ea\u5df1\u7684 HTTPS localhost backend \u8207 Google Places API key \u5c0b\u627e\u9644\u8fd1\u65e5\u5e38\u5348\u9910\u3002
+**Short description:** \u4f7f\u7528\u81ea\u5df1\u7684 HTTPS localhost backend \u8207 Google Places API key \u5c0b\u627e\u9644\u8fd1\u65e5\u5e38\u5348\u9910\u8207\u6d88\u591c\u3002
 
 **Important listing disclosure:** \u6b64\u64f4\u5145\u529f\u80fd\u4e0d\u5305\u542b\u5f8c\u7aef\u670d\u52d9\u6216\u5171\u7528 API key\u3002\u4f7f\u7528\u8005\u5fc5\u9808\u81ea\u884c\u5b89\u88dd Node.js \u8207 mkcert\u3001\u555f\u52d5 `https://localhost:3000` backend\u3001\u8a2d\u5b9a\u81ea\u5df1\u7684 Google Maps Platform billing \u8207 Places API (New) key\u3002Google Maps Platform \u7528\u91cf\u53ef\u80fd\u7522\u751f\u8cbb\u7528\u3002
 
 ## Permissions explanation
 
-- `geolocation`: used only after the user starts a nearby lunch search.
+- `geolocation`: used only after the user starts a nearby lunch or late-night food search.
 - `storage`: stores one random local client identifier, not restaurant results.
 - `sidePanel`: keeps the browsing interface open while Maps links are opened in a new tab.
 - `https://localhost:3000/*`: communicates only with the user's local backend over HTTPS.

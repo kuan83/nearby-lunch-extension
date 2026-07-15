@@ -9,9 +9,15 @@
   <body>
     <main class="panel">
       <section class="controls">
+        <div class="mode-bar">
+          <h1 id="modeTitle" class="mode-title"></h1>
+          <button id="modeToggleButton" class="mode-toggle-button" type="button">
+            <span id="modeToggleIcon" aria-hidden="true"></span>
+          </button>
+        </div>
         <div id="backendNotice" class="backend-notice" hidden>
           <span data-i18n="backendOffline"></span>
-          <a href="https://github.com/kuan83/nearby-lunch-extension#self-hosted-setup" target="_blank" rel="noreferrer" data-i18n="setupGuide"></a>
+          <a href="https://github.com/kuan83/nearby-lunch-extension#quick-setup-for-windows" target="_blank" rel="noreferrer" data-i18n="setupGuide"></a>
           <button id="healthRetryButton" type="button" data-i18n="retryCheck"></button>
         </div>
         <div id="filterPanel" class="filter-panel">
@@ -30,12 +36,12 @@
           <div class="control-group">
             <p class="control-label" data-i18n="foodType"></p>
             <div class="type-filter" role="group" data-i18n-aria-label="ariaFoodType">
-              <button class="type-option active" type="button" data-food-type="noodles" data-i18n="foodNoodles"></button>
-              <button class="type-option active" type="button" data-food-type="bento" data-i18n="foodBento"></button>
-              <button class="type-option active" type="button" data-food-type="healthy" data-i18n="foodHealthy"></button>
-              <button class="type-option active" type="button" data-food-type="southeast" data-i18n="foodSoutheast"></button>
-              <button class="type-option active" type="button" data-food-type="asian" data-i18n="foodAsian"></button>
-              <button class="type-option active" type="button" data-food-type="international" data-i18n="foodInternational"></button>
+              <button class="type-option active" type="button" data-food-slot="0"></button>
+              <button class="type-option active" type="button" data-food-slot="1"></button>
+              <button class="type-option active" type="button" data-food-slot="2"></button>
+              <button class="type-option active" type="button" data-food-slot="3"></button>
+              <button class="type-option active" type="button" data-food-slot="4"></button>
+              <button class="type-option active" type="button" data-food-slot="5"></button>
             </div>
           </div>
         </div>

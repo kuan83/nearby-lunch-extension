@@ -36,6 +36,42 @@ a { font: inherit; }
   box-shadow: 0 5px 18px rgba(31, 48, 43, 0.06);
 }
 
+.mode-bar {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mode-title {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #17221f;
+  font-size: 15px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.mode-toggle-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border: 1px solid #cbd5d1;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #34423e;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.mode-toggle-button:hover { background: #f0f4f2; }
+.mode-toggle-button:disabled { cursor: wait; opacity: 0.55; }
+
 .backend-notice {
   display: flex;
   align-items: center;
@@ -321,6 +357,100 @@ a { font: inherit; }
 }
 
 .maps-link:hover { text-decoration: underline; }
+
+.theme-night {
+  color-scheme: dark;
+  color: #f4f1e9;
+  background: #161918;
+}
+
+.theme-night .panel,
+.theme-night .results { background: #161918; }
+
+.theme-night .controls {
+  border-bottom-color: #363c39;
+  background: #202422;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.26);
+}
+
+.theme-night .mode-title { color: #fff7df; }
+
+.theme-night .mode-toggle-button {
+  border-color: #5a625e;
+  background: #2b302e;
+  color: #ffd36d;
+}
+
+.theme-night .mode-toggle-button:hover { background: #373d3a; }
+
+.theme-night .backend-notice {
+  border-color: #8e493f;
+  background: #3a2522;
+  color: #ffb5a8;
+}
+
+.theme-night .backend-notice a,
+.theme-night .backend-notice button,
+.theme-night .places-attribution button,
+.theme-night .maps-link { color: #8ab4f8; }
+
+.theme-night .location-disclosure,
+.theme-night .ranking-notice { color: #a8b0ac; }
+
+.theme-night .control-label,
+.theme-night .status { color: #d2d8d5; }
+
+.theme-night .meta-status { color: #929c97; }
+
+.theme-night .price-option,
+.theme-night .type-option,
+.theme-night .filter-toggle-button {
+  border-color: #4c5551;
+  background: #292e2c;
+  color: #e9edea;
+}
+
+.theme-night .price-option:hover,
+.theme-night .type-option:hover,
+.theme-night .filter-toggle-button:hover { background: #353b38; }
+
+.theme-night .price-option.active,
+.theme-night .type-option.active {
+  border-color: #e5a83b;
+  background: #3e3522;
+  color: #ffd36d;
+  box-shadow: inset 3px 0 0 #e5a83b;
+}
+
+.theme-night .primary-button {
+  background: #e5a83b;
+  color: #211b10;
+}
+
+.theme-night .primary-button:hover { background: #f0ba51; }
+
+.theme-night .refresh-button {
+  border-color: #e07967;
+  background: #3d2925;
+  color: #ffab9c;
+}
+
+.theme-night .refresh-button:hover { background: #4b302b; }
+
+.theme-night .restaurant {
+  border-color: #353c39;
+  background: #232725;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-night .restaurant__name { color: #f5f2ea; }
+.theme-night .address { color: #b5bdb9; }
+.theme-night .places-attribution { color: #aeb5b1; }
+.theme-night .open-state { color: #6fd6a9; }
+.theme-night .open-state.closed { color: #ff9584; }
+.theme-night .rating { background: #473b20; color: #ffd36d; }
+.theme-night .price-badge { background: #293b4d; color: #b9d8f4; }
+.theme-night .category-badge { background: #213c34; color: #8be0bd; }
 
 @media (max-width: 280px) {
   .controls { padding: 12px; }

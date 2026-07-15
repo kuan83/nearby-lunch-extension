@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Nearby Lunch Extension.
+Thanks for helping improve Nearby Food Extension.
 
 ## Before you contribute
 

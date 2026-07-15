@@ -21,6 +21,9 @@ jobs:
       - name: Install backend dependencies
         working-directory: backend
         run: npm ci
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test
       - name: Validate public release files
         shell: pwsh
         run: .\scripts\verify-public-release.ps1

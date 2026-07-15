@@ -45,6 +45,17 @@ function parsePriceRange(value) {
   return priceRange;
 }
 
+function validatePriceRangeForMealMode(priceRange, mealMode) {
+  if (mealMode === "lateNight" && !["all", "1_100", "101_500"].includes(priceRange)) {
+    const error = new Error("lateNight priceRange must be one of all, 1_100, or 101_500.");
+    error.statusCode = 400;
+    error.code = "INVALID_PRICE_RANGE_FOR_MODE";
+    error.publicMessage = error.message;
+    throw error;
+  }
+  return priceRange;
+}
+
 function filterByPriceRange(restaurants, priceRange) {
   const range = PRICE_RANGES[priceRange];
   if (!range || priceRange === "all") {
@@ -151,6 +162,7 @@ function formatAmount(amount) {
 
 module.exports = {
   parsePriceRange,
+  validatePriceRangeForMealMode,
   filterByPriceRange,
   normalizePriceRange,
   getPriceRangeLabel,

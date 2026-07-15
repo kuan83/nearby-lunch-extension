@@ -102,6 +102,11 @@ function dedupeRestaurants(restaurants) {
   return result;
 }
 
+function hasKnownRating(restaurant) {
+  const rating = Number(restaurant && restaurant.rating);
+  return Number.isFinite(rating) && rating > 0;
+}
+
 function categorizeRestaurant(restaurant) {
   const types = new Set([
     restaurant.primaryType,
@@ -173,6 +178,7 @@ module.exports = {
   buildRestaurantKey,
   categorizeRestaurant,
   dedupeRestaurants,
+  hasKnownRating,
   diversifyRestaurants,
   CATEGORY_LABELS
 };

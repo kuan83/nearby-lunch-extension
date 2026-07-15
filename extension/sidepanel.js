@@ -1,8 +1,46 @@
 const API_BASE_URL = "https://localhost:3000";
 const CLIENT_ID_KEY = "lunchClientId";
 const TARGET_COUNT = 20;
-const FOOD_TYPE_ORDER = ["noodles", "bento", "healthy", "southeast", "asian", "international"];
 const placesLanguage = getPlacesLanguage(chrome.i18n.getUILanguage());
+
+const MEAL_MODES = {
+  lunch: {
+    titleMessage: "lunchTitle",
+    toggleMessage: "switchToLateNight",
+    toggleIcon: "☾",
+    startMessage: "startLunch",
+    promptMessage: "startPromptLunch",
+    searchingMessage: "searchingLunch",
+    rankingMessage: "rankingNoticeLunch",
+    allowedPrices: ["all", "1_100", "101_500", "501_1000", "1001_2000", "2000_up"],
+    foodTypes: [
+      { value: "noodles", message: "foodNoodles" },
+      { value: "bento", message: "foodBento" },
+      { value: "healthy", message: "foodHealthy" },
+      { value: "southeast", message: "foodSoutheast" },
+      { value: "asian", message: "foodAsian" },
+      { value: "international", message: "foodInternational" }
+    ]
+  },
+  lateNight: {
+    titleMessage: "lateNightTitle",
+    toggleMessage: "switchToLunch",
+    toggleIcon: "☀",
+    startMessage: "startLateNight",
+    promptMessage: "startPromptLateNight",
+    searchingMessage: "searchingLateNight",
+    rankingMessage: "rankingNoticeLateNight",
+    allowedPrices: ["all", "1_100", "101_500"],
+    foodTypes: [
+      { value: "fried", message: "nightFoodFried" },
+      { value: "braised", message: "nightFoodBraised" },
+      { value: "lateSnacks", message: "nightFoodSnacks" },
+      { value: "nightNoodles", message: "nightFoodNoodles" },
+      { value: "nightRice", message: "nightFoodRice" },
+      { value: "cookedFood", message: "nightFoodCooked" }
+    ]
+  }
+};
 
 const recommendButton = document.querySelector("#recommendButton");
 const refreshButton = document.querySelector("#refreshButton");
@@ -18,11 +56,24 @@ const healthRetryButton = document.querySelector("#healthRetryButton");
 const placesAttribution = document.querySelector("#placesAttribution");
 const rankingInfoButton = document.querySelector("#rankingInfoButton");
 const rankingNotice = document.querySelector("#rankingNotice");
+const modeTitle = document.querySelector("#modeTitle");
+const modeToggleButton = document.querySelector("#modeToggleButton");
+const modeToggleIcon = document.querySelector("#modeToggleIcon");
 
+const modeStates = Object.fromEntries(Object.entries(MEAL_MODES).map(([mealMode, config]) => [
+  mealMode,
+  {
+    activeSession: null,
+    selectedPriceRange: "all",
+    selectedFoodTypes: config.foodTypes.map((foodType) => foodType.value)
+  }
+]));
+
+let currentMealMode = "lunch";
 let activeSession = null;
 let lastPosition = null;
 let selectedPriceRange = "all";
-let selectedFoodTypes = [...FOOD_TYPE_ORDER];
+let selectedFoodTypes = getFoodTypeOrder("lunch");
 let backendConnected = false;
 
 recommendButton.addEventListener("click", requestRecommendations);
@@ -30,6 +81,7 @@ refreshButton.addEventListener("click", refreshRecommendations);
 filterToggleButton.addEventListener("click", toggleFilterPanel);
 healthRetryButton.addEventListener("click", checkBackendConnection);
 rankingInfoButton.addEventListener("click", () => { rankingNotice.hidden = !rankingNotice.hidden; });
+modeToggleButton.addEventListener("click", toggleMealMode);
 priceButtons.forEach((button) => button.addEventListener("click", () => selectPriceRange(button.dataset.priceRange)));
 typeButtons.forEach((button) => button.addEventListener("click", () => toggleFoodType(button.dataset.foodType)));
 
@@ -37,6 +89,7 @@ initialize();
 
 async function initialize() {
   localizeDocument();
+  applyMealModeUi();
   syncButtons();
   await checkBackendConnection();
 }
@@ -66,7 +119,7 @@ function renderConnectionState() {
     return;
   }
   if (!activeSession) {
-    setStatus(t("startPrompt"));
+    setStatus(t(getModeConfig().promptMessage));
     setMetaStatus("");
   }
   updateActionMode();
@@ -75,7 +128,7 @@ function renderConnectionState() {
 async function requestRecommendations() {
   if (!backendConnected) return;
   setLoading(true);
-  setStatus(t("searching"), false);
+  setStatus(t(getModeConfig().searchingMessage), false);
   try {
     const position = lastPosition || await getCurrentPosition();
     lastPosition = position;
@@ -83,6 +136,7 @@ async function requestRecommendations() {
       lat: position.coords.latitude,
       lng: position.coords.longitude,
       clientId: await getClientId(),
+      mealMode: currentMealMode,
       priceRange: selectedPriceRange,
       foodTypes: getSelectedFoodTypesKey(),
       languageCode: placesLanguage
@@ -91,6 +145,7 @@ async function requestRecommendations() {
       restaurants: Array.isArray(data.restaurants) ? data.restaurants : [],
       candidates: Array.isArray(data.sessionCandidates) ? data.sessionCandidates : [],
       seenRestaurantIds: (data.restaurants || []).map(getRestaurantKey),
+      mealMode: currentMealMode,
       priceRange: selectedPriceRange,
       foodTypes: [...selectedFoodTypes],
       searchRadiusMeters: data.searchRadiusMeters,
@@ -98,6 +153,7 @@ async function requestRecommendations() {
       quota: data.quota || {},
       resultShortfall: Boolean(data.resultShortfall)
     };
+    saveCurrentModeState();
     renderActiveSession(t("resultReceived"));
   } catch (error) {
     setStatus(error.message || t("errorFallback"), true);
@@ -114,9 +170,8 @@ function refreshRecommendations() {
   const batch = buildLocalRecommendationBatch(activeSession.candidates, activeSession.seenRestaurantIds);
   activeSession.restaurants = batch.restaurants;
   activeSession.seenRestaurantIds = batch.seenRestaurantIds;
-  renderActiveSession(batch.cycleReset
-    ? t("cycleReset")
-    : t("unseenResults"));
+  saveCurrentModeState();
+  renderActiveSession(batch.cycleReset ? t("cycleReset") : t("unseenResults"));
 }
 
 function buildLocalRecommendationBatch(candidates, seenRestaurantIds) {
@@ -131,6 +186,49 @@ function buildLocalRecommendationBatch(candidates, seenRestaurantIds) {
   const restaurants = source.slice(0, TARGET_COUNT);
   restaurants.forEach((restaurant) => seen.add(getRestaurantKey(restaurant)));
   return { restaurants, seenRestaurantIds: [...seen], cycleReset };
+}
+
+function toggleMealMode() {
+  saveCurrentModeState();
+  currentMealMode = currentMealMode === "lunch" ? "lateNight" : "lunch";
+  loadCurrentModeState();
+  applyMealModeUi();
+  syncButtons();
+  rankingNotice.hidden = true;
+
+  if (!backendConnected) {
+    renderConnectionState();
+    return;
+  }
+  if (activeSession) {
+    renderActiveSession(t("modeRestored"));
+    return;
+  }
+  resultsElement.replaceChildren();
+  placesAttribution.hidden = true;
+  setStatus(t(getModeConfig().promptMessage));
+  setMetaStatus("");
+  updateActionMode();
+}
+
+function applyMealModeUi() {
+  const config = getModeConfig();
+  document.body.classList.toggle("theme-night", currentMealMode === "lateNight");
+  modeTitle.textContent = t(config.titleMessage);
+  modeToggleIcon.textContent = config.toggleIcon;
+  modeToggleButton.setAttribute("aria-label", t(config.toggleMessage));
+  modeToggleButton.title = t(config.toggleMessage);
+  recommendButton.textContent = t(config.startMessage);
+  rankingNotice.textContent = t(config.rankingMessage);
+
+  config.foodTypes.forEach((foodType, index) => {
+    const button = typeButtons[index];
+    button.dataset.foodType = foodType.value;
+    button.textContent = t(foodType.message);
+  });
+  priceButtons.forEach((button) => {
+    button.hidden = !config.allowedPrices.includes(button.dataset.priceRange);
+  });
 }
 
 function renderActiveSession(message) {
@@ -151,30 +249,32 @@ function updateActionMode() {
 }
 
 function selectPriceRange(priceRange) {
+  if (!getModeConfig().allowedPrices.includes(priceRange)) return;
   selectedPriceRange = priceRange;
+  saveCurrentModeState();
   syncButtons();
   announcePendingChanges();
 }
 
 function toggleFoodType(foodType) {
+  const foodTypeOrder = getFoodTypeOrder();
   const isSelected = selectedFoodTypes.includes(foodType);
   if (isSelected && selectedFoodTypes.length === 1) return;
   selectedFoodTypes = isSelected
     ? selectedFoodTypes.filter((value) => value !== foodType)
-    : FOOD_TYPE_ORDER.filter((value) => selectedFoodTypes.includes(value) || value === foodType);
+    : foodTypeOrder.filter((value) => selectedFoodTypes.includes(value) || value === foodType);
+  saveCurrentModeState();
   syncButtons();
   announcePendingChanges();
 }
 
 function announcePendingChanges() {
-  if (activeSession && hasPendingConditionChanges()) {
-    setStatus(t("pendingChanges"));
-  }
+  if (activeSession && hasPendingConditionChanges()) setStatus(t("pendingChanges"));
 }
 
 function hasPendingConditionChanges() {
   return Boolean(activeSession) && (activeSession.priceRange !== selectedPriceRange
-    || getFoodTypesKey(activeSession.foodTypes) !== getSelectedFoodTypesKey());
+    || getFoodTypesKey(activeSession.foodTypes, currentMealMode) !== getSelectedFoodTypesKey());
 }
 
 function syncButtons() {
@@ -204,6 +304,7 @@ function setLoading(isLoading) {
   recommendButton.disabled = isLoading;
   refreshButton.disabled = isLoading;
   filterToggleButton.disabled = isLoading;
+  modeToggleButton.disabled = isLoading;
   priceButtons.forEach((button) => { button.disabled = isLoading || !backendConnected; });
   typeButtons.forEach((button) => { button.disabled = isLoading || !backendConnected; });
 }
@@ -222,7 +323,7 @@ function buildMetaStatus(session) {
   if (session.quota && Number.isFinite(session.quota.dailyGoogleCalls)) {
     parts.push(`${t("googleApi")} ${session.quota.dailyGoogleCalls}/${session.quota.maxDailyGoogleCalls}`);
   }
-  return parts.join(" \u00b7 ");
+  return parts.join(" · ");
 }
 
 function renderRestaurants(restaurants) {
@@ -235,15 +336,21 @@ function renderRestaurants(restaurants) {
     title.textContent = restaurant.name || t("unnamedRestaurant");
     const badges = document.createElement("div");
     badges.className = "badges";
-    badges.append(createBadge("rating", `${t("score")} ${formatRating(restaurant.rating)}`), createBadge("price-badge", getPriceLabel(restaurant.priceRange)), createBadge("category-badge", getCategoryLabel(restaurant.category)));
+    badges.append(
+      createBadge("rating", `${t("score")} ${formatRating(restaurant.rating)}`),
+      createBadge("price-badge", getPriceLabel(restaurant.priceRange)),
+      createBadge("category-badge", getCategoryLabel(restaurant.category))
+    );
     const address = document.createElement("p");
     address.className = "address";
     address.textContent = restaurant.address || t("addressUnknown");
     const footer = document.createElement("div");
     footer.className = "restaurant__footer";
     const openState = document.createElement("span");
-    openState.className = `open-state${restaurant.isOpen === false ? " closed" : ""}`;
-    openState.textContent = `${formatOpenState(restaurant.isOpen)}${formatDistance(restaurant.distanceMeters)}`;
+    openState.className = `open-state${restaurant.isOpen === false && currentMealMode === "lunch" ? " closed" : ""}`;
+    openState.textContent = currentMealMode === "lateNight"
+      ? formatLateNightState(restaurant)
+      : `${formatOpenState(restaurant.isOpen)}${formatDistance(restaurant.distanceMeters)}`;
     const mapLink = document.createElement("a");
     mapLink.className = "maps-link";
     mapLink.href = restaurant.googleMapsUrl;
@@ -263,12 +370,22 @@ function createBadge(className, text) {
   return badge;
 }
 
+function formatLateNightState(restaurant) {
+  let hours;
+  if (restaurant.lateNightStatus === "unknown") hours = t("lateHoursUnknown");
+  else if (restaurant.lateNightAllNight) hours = t("openAllNight");
+  else if (restaurant.lateCloseTime) hours = t("openUntil", [restaurant.lateCloseTime]);
+  else hours = t("lateNightOpen");
+  const current = restaurant.isOpen === true ? `${t("openNow")} · ` : "";
+  return `${current}${hours}${formatDistance(restaurant.distanceMeters)}`;
+}
+
 function formatRating(value) { return Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value).toFixed(1) : t("ratingUnknown"); }
 function formatOpenState(isOpen) { return isOpen === true ? t("openNow") : isOpen === false ? t("closed") : t("openingUnknown"); }
-function formatDistance(value) { return Number.isFinite(Number(value)) ? ` \u00b7 ${Math.round(value)} ${t("meters")}` : ""; }
+function formatDistance(value) { return Number.isFinite(Number(value)) ? ` · ${Math.round(value)} ${t("meters")}` : ""; }
 
-async function fetchRecommendations({ lat, lng, clientId, priceRange, foodTypes, languageCode }) {
-  const params = new URLSearchParams({ lat: String(lat), lng: String(lng), priceRange, foodTypes, languageCode });
+async function fetchRecommendations({ lat, lng, clientId, mealMode, priceRange, foodTypes, languageCode }) {
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng), mealMode, priceRange, foodTypes, languageCode });
   const response = await fetch(`${API_BASE_URL}/api/lunch?${params.toString()}`, { headers: { "X-Lunch-Client-Id": clientId } });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(getApiErrorMessage(data.code) || data.error || t("errorFallback"));
@@ -276,7 +393,11 @@ async function fetchRecommendations({ lat, lng, clientId, priceRange, foodTypes,
 }
 
 function getCurrentPosition() {
-  return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, () => reject(new Error(t("errorPosition"))), { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }));
+  return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+    resolve,
+    () => reject(new Error(t("errorPosition"))),
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+  ));
 }
 
 async function getClientId() {
@@ -287,16 +408,33 @@ async function getClientId() {
   return clientId;
 }
 
-function getSelectedFoodTypesKey() { return getFoodTypesKey(selectedFoodTypes); }
-function getFoodTypesKey(foodTypes) { return FOOD_TYPE_ORDER.filter((value) => foodTypes.includes(value)).join(","); }
+function saveCurrentModeState() {
+  modeStates[currentMealMode] = {
+    activeSession,
+    selectedPriceRange,
+    selectedFoodTypes: [...selectedFoodTypes]
+  };
+}
+
+function loadCurrentModeState() {
+  const state = modeStates[currentMealMode];
+  activeSession = state.activeSession;
+  selectedPriceRange = state.selectedPriceRange;
+  selectedFoodTypes = [...state.selectedFoodTypes];
+}
+
+function getModeConfig() { return MEAL_MODES[currentMealMode]; }
+function getFoodTypeOrder(mealMode = currentMealMode) { return MEAL_MODES[mealMode].foodTypes.map((item) => item.value); }
+function getSelectedFoodTypesKey() { return getFoodTypesKey(selectedFoodTypes, currentMealMode); }
+function getFoodTypesKey(foodTypes, mealMode) { return getFoodTypeOrder(mealMode).filter((value) => foodTypes.includes(value)).join(","); }
 function getRestaurantKey(restaurant) { return restaurant.id || `${restaurant.name || ""}|${restaurant.address || ""}`; }
 
 function getPlacesLanguage(uiLanguage) {
   return /^zh(?:-|_)/i.test(uiLanguage || "") ? "zh-TW" : "en";
 }
 
-function t(messageName) {
-  return chrome.i18n.getMessage(messageName) || messageName;
+function t(messageName, substitutions) {
+  return chrome.i18n.getMessage(messageName, substitutions) || messageName;
 }
 
 function getApiErrorMessage(code) {
@@ -304,30 +442,24 @@ function getApiErrorMessage(code) {
 }
 
 function getCategoryLabel(category) {
-  return category ? chrome.i18n.getMessage(`category_${category}`) || t("dailyLunch") : t("dailyLunch");
+  const fallback = currentMealMode === "lateNight" ? t("lateNightFood") : t("dailyLunch");
+  return category ? chrome.i18n.getMessage(`category_${category}`) || fallback : fallback;
 }
 
 function getPriceLabel(priceRange) {
-  if (!priceRange || (priceRange.startAmount === null && priceRange.endAmount === null)) {
-    return t("priceUnknown");
-  }
-
+  if (!priceRange || (priceRange.startAmount === null && priceRange.endAmount === null)) return t("priceUnknown");
   const formatAmount = (value) => new Intl.NumberFormat(placesLanguage).format(value);
   const suffix = priceRange.currencyCode && priceRange.currencyCode !== "TWD" ? ` ${priceRange.currencyCode}` : "";
   if (priceRange.startAmount !== null && priceRange.endAmount !== null) {
     return `${formatAmount(priceRange.startAmount)}-${formatAmount(priceRange.endAmount)}${suffix}`;
   }
-  if (priceRange.startAmount !== null) {
-    return `${formatAmount(priceRange.startAmount)} ${t("priceAndUp")}${suffix}`;
-  }
+  if (priceRange.startAmount !== null) return `${formatAmount(priceRange.startAmount)} ${t("priceAndUp")}${suffix}`;
   return `${formatAmount(priceRange.endAmount)} ${t("priceUpTo")}${suffix}`;
 }
 
 function localizeDocument() {
   document.documentElement.lang = placesLanguage === "zh-TW" ? "zh-Hant" : "en";
-  document.querySelectorAll("[data-i18n]").forEach((element) => {
-    element.textContent = t(element.dataset.i18n);
-  });
+  document.querySelectorAll("[data-i18n]").forEach((element) => { element.textContent = t(element.dataset.i18n); });
   document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
     element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
   });

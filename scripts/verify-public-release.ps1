@@ -7,9 +7,14 @@ $javascriptFiles = @(
   "backend/server.js",
   "backend/src/config.js",
   "backend/src/googlePlaces.js",
+  "backend/src/foodTypes.js",
   "backend/src/language.js",
+  "backend/src/lateNight.js",
   "backend/src/lunchService.js",
+  "backend/src/officeLunch.js",
+  "backend/src/priceRange.js",
   "backend/src/searchPipeline.js",
+  "scripts/check-local-backend.js",
   "extension/sidepanel.js"
 )
 
