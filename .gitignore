@@ -4,6 +4,7 @@ backend/certs/
 .DS_Store
 dist/
 .playwright-cli/
+output/
 nvm-install.log
 nvm-setup.exe
 backend/server.out.log

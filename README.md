@@ -1,6 +1,6 @@
-# Nearby Lunch Extension (Self-hosted)
+# Nearby Food Extension (Self-hosted)
 
-Chrome Manifest V3 Side Panel extension for finding everyday lunch nearby. This release is a self-hosted developer tool: it connects only to a backend running securely on your own computer at `https://localhost:3000`.
+Chrome Manifest V3 Side Panel extension for finding everyday lunch and affordable late-night food nearby. It connects only to a backend running securely on your own computer at `https://localhost:3000`.
 
 The extension does not include a shared backend or a shared Google Maps Platform key. Each user supplies and manages their own key, billing account, and usage limits.
 
@@ -8,10 +8,10 @@ The extension does not include a shared backend or a shared Google Maps Platform
 
 This repository contains two parts:
 
-- `extension/`: the Manifest V3 Side Panel interface. It asks for location only after the user starts a search and never contains a Google API key.
+- `extension/`: the Manifest V3 Side Panel interface with lunch and late-night modes. It asks for location only after the user starts a search and never contains a Google API key.
 - `backend/`: a local HTTPS Node.js service that calls Places API (New) with the user's own key.
 
-The project is published as source code for self-hosting. It is not a hosted lunch-search service and does not provide a shared Google billing account.
+The project is published as source code for self-hosting. It is not a hosted restaurant-search service and does not provide a shared Google billing account.
 
 ## Quick setup for Windows
 
@@ -68,17 +68,26 @@ The first-time setup creates `backend/.env` and `backend/certs/` locally. Both a
 
 The Side Panel checks `/health` before asking for location. If the local backend is unavailable, it shows a setup state and sends no Places request.
 
+## Recommendation modes
+
+- **Lunch** is the default light theme and focuses on everyday noodles, rice, lunch boxes, healthy food, Southeast Asian food, Asian meals, and casual international food.
+- **Late night** uses a dark theme and focuses on fried snacks, braised snacks, late-night bites, noodles and soup, braised-pork rice, and cooked food. Known high-price restaurants and pastry/dessert businesses are excluded.
+- Lunch uses Nearby Search (New). Late-night mode combines four localized Text Search (New) queries for categories without reliable Google place types (such as fried snacks, braised snacks, stinky tofu, and braised-pork rice) with two Nearby Search groups. All searches are geographically restricted and distance-ranked.
+- Late-night opening hours are preferred when Google provides them; businesses with unknown hours remain lower in the results. Mode switching does not make a Google request.
+- Mode switching itself does not call Google. Results for each mode remain separate in memory while the Side Panel stays open.
+
 ## Languages
 
-The extension follows Chrome's UI language. Traditional Chinese (`zh-TW`) and English are available; unsupported UI languages fall back to English. Nearby Search uses `zh-TW` for Chrome languages beginning with `zh-`, and `en` for all other languages. Google Places may still return store names or addresses in the language available in its source data.
+The extension follows Chrome's UI language. Traditional Chinese (`zh-TW`) and English are available; unsupported UI languages fall back to English. Places searches use `zh-TW` for Chrome languages beginning with `zh-`, and `en` for all other languages. Google Places may still return store names or addresses in the language available in its source data.
 
 ## Data and cost behavior
 
-- Your browser sends location over HTTPS to your own `localhost` backend, which sends the Nearby Search request to Google Maps Platform using **your** key.
-- The released extension and backend do not persist Google Places content. Results exist only while the current Side Panel remains open. Closing or reloading it clears restaurant data.
+- Your browser sends location over HTTPS to your own `localhost` backend, which sends Nearby Search or Text Search requests to Google Maps Platform using **your** key.
+- The released extension and backend do not persist Google Places content. Lunch and late-night results exist only while the current Side Panel remains open. Closing or reloading it clears restaurant data.
 - `chrome.storage.local` only stores a random client identifier used by the local rate limiter; it does not store restaurant results.
 - The backend keeps short-lived failure cooldown, rate-limit, and daily-call counters. It does not keep full Places responses.
 - Default `MAX_DAILY_GOOGLE_CALLS=25` is a local guardrail, not a guarantee of free Google Maps Platform usage. Set Google Cloud Billing budgets and alerts yourself.
+- Late-night mode uses both Nearby Search Enterprise and Text Search Enterprise fields. Google currently gives each SKU its own monthly 1,000-call free usage cap, but pricing can change; the local daily counter limits their combined total.
 
 The UI includes Google Maps attribution, a Google Maps link for each result, and a short ranking explanation. See the [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies) before redistributing modified versions.
 

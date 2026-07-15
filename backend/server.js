@@ -9,6 +9,9 @@ const { config } = require("./src/config");
 const { lunchRateLimit } = require("./src/rateLimit");
 const { getLunchRecommendations } = require("./src/lunchService");
 const { getDailyGoogleCallCount } = require("./src/quota");
+const { version: backendVersion } = require("./package.json");
+
+const SEARCH_STRATEGY_VERSION = "lateNightHybridV1";
 
 const app = express();
 
@@ -21,7 +24,11 @@ app.use(
 );
 
 app.get("/health", (req, res) => {
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+    version: backendVersion,
+    searchStrategyVersion: SEARCH_STRATEGY_VERSION
+  });
 });
 
 app.get("/api/lunch", lunchRateLimit, async (req, res) => {
@@ -30,6 +37,7 @@ app.get("/api/lunch", lunchRateLimit, async (req, res) => {
       lat: req.query.lat,
       lng: req.query.lng,
       clientId: req.get("X-Lunch-Client-Id"),
+      mealMode: req.query.mealMode,
       priceRange: req.query.priceRange,
       foodTypes: req.query.foodTypes,
       languageCode: req.query.languageCode
@@ -52,8 +60,20 @@ app.get("/api/lunch", lunchRateLimit, async (req, res) => {
 
 const tlsCredentials = loadTlsCredentials();
 
-https.createServer(tlsCredentials, app).listen(config.port, () => {
-  console.log(`Lunch backend listening securely on https://localhost:${config.port}`);
+const server = https.createServer(tlsCredentials, app);
+
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(`Port ${config.port} is already in use. Nearby Food backend may already be running.`);
+    console.error("Close the existing backend window, or stop its process before starting another copy.");
+    process.exitCode = 1;
+    return;
+  }
+  throw error;
+});
+
+server.listen(config.port, () => {
+  console.log(`Nearby Food backend listening securely on https://localhost:${config.port}`);
 });
 
 function loadTlsCredentials() {

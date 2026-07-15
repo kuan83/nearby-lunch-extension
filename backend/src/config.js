@@ -20,6 +20,7 @@ const config = {
     "places.priceLevel",
     "places.priceRange",
     "places.currentOpeningHours",
+    "places.timeZone",
     "places.googleMapsUri"
   ].join(",")
 };

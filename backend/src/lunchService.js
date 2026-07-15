@@ -2,31 +2,51 @@ const { config } = require("./config");
 const { getDailyGoogleCallCount } = require("./quota");
 const { getLocalDateKey } = require("./time");
 const { parsePlacesLanguage } = require("./language");
-const { parseFoodTypes } = require("./foodTypes");
-const { filterByPriceRange, getPriceRangeLabel, normalizePriceRange, parsePriceRange } = require("./priceRange");
-const { buildRestaurantKey, diversifyOfficeLunchRestaurants } = require("./officeLunch");
-const { buildOfficeLunchCandidatePool } = require("./searchPipeline");
+const { parseMealMode, parseFoodTypes, MEAL_MODE_LATE_NIGHT } = require("./foodTypes");
+const { filterByPriceRange, getPriceRangeLabel, normalizePriceRange, parsePriceRange, validatePriceRangeForMealMode } = require("./priceRange");
+const {
+  buildRestaurantKey,
+  diversifyOfficeLunchRestaurants,
+  filterOfficeLunchRestaurants
+} = require("./officeLunch");
+const { filterLateNightRestaurants, diversifyLateNightRestaurants, deriveLateNightHours } = require("./lateNight");
+const { buildCandidatePool } = require("./searchPipeline");
 
-async function getLunchRecommendations({ lat, lng, clientId, priceRange: priceRangeValue, foodTypes: foodTypesValue, languageCode: languageCodeValue }) {
+async function getLunchRecommendations({ lat, lng, clientId, mealMode: mealModeValue, priceRange: priceRangeValue, foodTypes: foodTypesValue, languageCode: languageCodeValue }) {
   const location = parseLocation(lat, lng);
   parseClientId(clientId);
-  const priceRange = parsePriceRange(priceRangeValue);
+  const mealMode = parseMealMode(mealModeValue);
+  const priceRange = validatePriceRangeForMealMode(parsePriceRange(priceRangeValue), mealMode);
   const languageCode = parsePlacesLanguage(languageCodeValue);
-  const { selectedFoodTypes, foodTypesKey, searchGroups } = parseFoodTypes(foodTypesValue);
+  const { selectedFoodTypes, foodTypesKey, searchGroups } = parseFoodTypes(foodTypesValue, mealMode);
   const geoBucket = buildGeoBucket(location.lat, location.lng);
-  const errorKeyPrefix = `googleError:${getLocalDateKey()}:${geoBucket}:${foodTypesKey}`;
+  const errorKeyPrefix = `googleError:${getLocalDateKey()}:${geoBucket}:${mealMode}:${foodTypesKey}`;
 
   if (!config.placesApiKey) {
     throw publicError(500, "MISSING_GOOGLE_PLACES_API_KEY", "Backend is missing GOOGLE_PLACES_API_KEY.");
   }
 
-  const result = await buildOfficeLunchCandidatePool({
+  const isLateNight = mealMode === MEAL_MODE_LATE_NIGHT;
+  const prepareCandidates = (places) => {
+    const filtered = isLateNight
+      ? filterLateNightRestaurants(places)
+      : filterOfficeLunchRestaurants(places);
+    const priceFiltered = filterByPriceRange(filtered, priceRange);
+    return isLateNight
+      ? diversifyLateNightRestaurants(priceFiltered, {
+        selectedSearchGroups: searchGroups,
+        recommendationCount: config.recommendationCount
+      })
+      : diversifyOfficeLunchRestaurants(priceFiltered);
+  };
+  const result = await buildCandidatePool({
     lat: location.lat,
     lng: location.lng,
     searchGroups,
     languageCode,
     errorKeyPrefix,
-    formatRestaurant
+    prepareCandidates,
+    formatRestaurant: (place, originLat, originLng) => formatRestaurant(place, originLat, originLng, mealMode)
   });
 
   if (!result.pool.length) {
@@ -36,12 +56,13 @@ async function getLunchRecommendations({ lat, lng, clientId, priceRange: priceRa
     throw publicError(502, "GOOGLE_PLACES_ERROR", "Google Places searches failed. Please try again later.");
   }
 
-  const candidates = diversifyOfficeLunchRestaurants(filterByPriceRange(result.pool, priceRange));
+  const candidates = result.pool;
   const restaurants = candidates.slice(0, config.recommendationCount);
 
   return {
     restaurants,
     sessionCandidates: candidates,
+    mealMode,
     geoBucket,
     priceRange,
     foodTypes: selectedFoodTypes,
@@ -59,10 +80,13 @@ async function getLunchRecommendations({ lat, lng, clientId, priceRange: priceRa
   };
 }
 
-function formatRestaurant(place, originLat, originLng) {
+function formatRestaurant(place, originLat, originLng, mealMode = "lunch") {
   const priceRange = normalizePriceRange(place.priceRange);
   const latitude = place.location && Number(place.location.latitude);
   const longitude = place.location && Number(place.location.longitude);
+  const lateNightHours = mealMode === MEAL_MODE_LATE_NIGHT
+    ? deriveLateNightHours(place)
+    : {};
 
   return {
     id: place.id || null,
@@ -81,7 +105,8 @@ function formatRestaurant(place, originLat, originLng) {
     isOpen: place.currentOpeningHours && typeof place.currentOpeningHours.openNow === "boolean"
       ? place.currentOpeningHours.openNow
       : null,
-    googleMapsUrl: place.googleMapsUri || buildGoogleMapsSearchUrl(place)
+    googleMapsUrl: place.googleMapsUri || buildGoogleMapsSearchUrl(place),
+    ...lateNightHours
   };
 }
 

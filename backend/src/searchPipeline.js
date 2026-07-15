@@ -1,10 +1,18 @@
 const { config } = require("./config");
 const { getCache, setCache } = require("./cache");
 const { canCallGoogle, incrementDailyGoogleCallCount } = require("./quota");
-const { searchNearbyRestaurants } = require("./googlePlaces");
-const { filterOfficeLunchRestaurants } = require("./officeLunch");
+const { searchPlacesForGroup } = require("./googlePlaces");
 
-async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, languageCode, errorKeyPrefix, formatRestaurant }) {
+async function buildCandidatePool({
+  lat,
+  lng,
+  searchGroups,
+  languageCode,
+  errorKeyPrefix,
+  formatRestaurant,
+  prepareCandidates,
+  searchPlaces = searchPlacesForGroup
+}) {
   const state = {
     places: [],
     googleCallsUsed: 0,
@@ -20,10 +28,11 @@ async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, languageC
     languageCode,
     errorKeyPrefix,
     formatRestaurant,
+    searchPlaces,
     state
   });
 
-  let pool = filterOfficeLunchRestaurants(state.places);
+  let pool = prepareCandidates(state.places);
   let searchRadiusMeters = config.initialSearchRadiusMeters;
 
   if (pool.length < config.recommendationCount && !state.quotaLimited) {
@@ -35,9 +44,10 @@ async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, languageC
       languageCode,
       errorKeyPrefix,
       formatRestaurant,
+      searchPlaces,
       state
     });
-    pool = filterOfficeLunchRestaurants(state.places);
+    pool = prepareCandidates(state.places);
     searchRadiusMeters = config.expandedSearchRadiusMeters;
   }
 
@@ -50,7 +60,7 @@ async function buildOfficeLunchCandidatePool({ lat, lng, searchGroups, languageC
   };
 }
 
-async function runStage({ lat, lng, radius, searchGroups, languageCode, errorKeyPrefix, formatRestaurant, state }) {
+async function runStage({ lat, lng, radius, searchGroups, languageCode, errorKeyPrefix, formatRestaurant, searchPlaces, state }) {
   for (const searchGroup of searchGroups) {
     const cooldownKey = `${errorKeyPrefix}:${searchGroup}:${radius}`;
     if (getCache(cooldownKey)) {
@@ -67,8 +77,11 @@ async function runStage({ lat, lng, radius, searchGroups, languageCode, errorKey
     state.googleCallsUsed += 1;
 
     try {
-      const places = await searchNearbyRestaurants(lat, lng, searchGroup, radius, languageCode);
-      state.places.push(...places.map((place) => formatRestaurant(place, lat, lng)));
+      const places = await searchPlaces(lat, lng, searchGroup, radius, languageCode);
+      const restaurants = places
+        .map((place) => formatRestaurant(place, lat, lng))
+        .filter((restaurant) => isWithinSearchRadius(restaurant, radius));
+      state.places.push(...restaurants);
     } catch (error) {
       state.failedGroups.push(searchGroup);
       setCache(
@@ -80,4 +93,10 @@ async function runStage({ lat, lng, radius, searchGroups, languageCode, errorKey
   }
 }
 
-module.exports = { buildOfficeLunchCandidatePool };
+function isWithinSearchRadius(restaurant, radius) {
+  return Number.isFinite(restaurant.distanceMeters)
+    && restaurant.distanceMeters >= 0
+    && restaurant.distanceMeters <= radius;
+}
+
+module.exports = { buildCandidatePool, isWithinSearchRadius };

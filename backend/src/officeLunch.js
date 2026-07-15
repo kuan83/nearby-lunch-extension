@@ -1,5 +1,7 @@
-const { buildRestaurantKey, dedupeRestaurants } = require("./diversity");
-const { SEARCH_GROUP_ORDER, SEARCH_GROUPS } = require("./foodTypes");
+const { buildRestaurantKey, dedupeRestaurants, hasKnownRating } = require("./diversity");
+const { getSearchGroupOrder, SEARCH_GROUPS, MEAL_MODE_LUNCH } = require("./foodTypes");
+
+const SEARCH_GROUP_ORDER = getSearchGroupOrder(MEAL_MODE_LUNCH);
 
 const EXCLUDED_TYPES = new Set([
   "steak_house",
@@ -21,6 +23,7 @@ const DAILY_LUNCH_PATTERN = /(便當|餐盒|河粉|拉麵|麵|飯|粥|水餃|餃
 
 function filterOfficeLunchRestaurants(restaurants) {
   return dedupeRestaurants(restaurants).filter((restaurant) => {
+    if (!hasKnownRating(restaurant)) return false;
     const types = new Set([
       restaurant.primaryType,
       ...(Array.isArray(restaurant.types) ? restaurant.types : [])
