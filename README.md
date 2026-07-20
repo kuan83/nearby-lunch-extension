@@ -1,5 +1,9 @@
 # Nearby Food Extension (Self-hosted)
 
+不知道午餐想吃什麼，又厭倦點 google map了嗎？ 
+
+本chrome extension幫你篩選附近有什麼可吃。
+
 Chrome Manifest V3 Side Panel extension for finding everyday lunch and affordable late-night food nearby. It connects only to a backend running securely on your own computer at `https://localhost:3000`.
 
 The extension does not include a shared backend or a shared Google Maps Platform key. Each user supplies and manages their own key, billing account, and usage limits.
