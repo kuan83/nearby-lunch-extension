@@ -1,6 +1,6 @@
 # Nearby Food Extension (Self-hosted)
 
-不知道午餐想吃什麼，又厭倦點 google map了嗎？ 
+不知道想吃什麼午餐，又厭倦用 google map 一個一個找了嗎？ 
 
 本chrome extension幫你篩選附近有什麼可吃。
 
